@@ -15,12 +15,17 @@ from models import nin
 from torch.autograd import Variable
 
 def save_state(model, best_acc):
+    
+    # cwu: make a copy of the dict so the dict is not mutated during iteration
+    state_dict = model.state_dict()
+    state_dict_copy = state_dict.copy()
     print('==> Saving model ...')
     state = {
             'best_acc': best_acc,
-            'state_dict': model.state_dict(),
+            'state_dict': state_dict,
             }
-    for key in state['state_dict'].keys():
+
+    for key in state_dict_copy.keys():
         if 'module' in key:
             state['state_dict'][key.replace('module.', '')] = \
                     state['state_dict'].pop(key)
@@ -44,12 +49,13 @@ def train(epoch):
         # restore weights
         bin_op.restore()
         bin_op.updateBinaryGradWeight()
+        print("loss: "+str(loss.data.item()))
         
         optimizer.step()
         if batch_idx % 100 == 0:
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tLR: {}'.format(
                 epoch, batch_idx * len(data), len(trainloader.dataset),
-                100. * batch_idx / len(trainloader), loss.data[0],
+                100. * batch_idx / len(trainloader), loss.data.item(),
                 optimizer.param_groups[0]['lr']))
     return
 
@@ -63,7 +69,7 @@ def test():
         data, target = Variable(data.cuda()), Variable(target.cuda())
                                     
         output = model(data)
-        test_loss += criterion(output, target).data[0]
+        test_loss += criterion(output, target).data.item()
         pred = output.data.max(1, keepdim=True)[1]
         correct += pred.eq(target.data.view_as(pred)).cpu().sum()
     bin_op.restore()
@@ -110,7 +116,7 @@ if __name__=='__main__':
     torch.cuda.manual_seed(1)
 
     # prepare the data
-    if not os.path.isfile(args.data+'/train_data'):
+    if not os.path.isfile(args.data+'train_data'):
         # check the data path
         raise Exception\
                 ('Please assign the correct data path with --data <DATA_PATH>')
@@ -174,7 +180,7 @@ if __name__=='__main__':
         exit(0)
 
     # start training
-    for epoch in range(1, 320):
+    for epoch in range(1, 10):
         adjust_learning_rate(optimizer, epoch)
         train(epoch)
         test()
