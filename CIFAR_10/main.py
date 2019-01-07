@@ -34,16 +34,17 @@ def save_state(model, best_acc):
 def train(epoch):
     model.train()
     for batch_idx, (data, target) in enumerate(trainloader):
-        # process the weights including binarization
+
         bin_op.binarization()
         
-        # forwarding
+        # forwardingpython criterion function
         data, target = Variable(data.cuda()), Variable(target.cuda())
         optimizer.zero_grad()
         output = model(data)
         
         # backwarding
         loss = criterion(output, target)
+        #raise SystemExit
         loss.backward()
         
         # restore weights
@@ -91,7 +92,7 @@ def adjust_learning_rate(optimizer, epoch):
     if epoch in update_list:
         for param_group in optimizer.param_groups:
             param_group['lr'] = param_group['lr'] * 0.1
-    return
+    return criterion
 
 if __name__=='__main__':
     # prepare the options
@@ -157,7 +158,7 @@ if __name__=='__main__':
     if not args.cpu:
         model.cuda()
         model = torch.nn.DataParallel(model, device_ids=range(torch.cuda.device_count()))
-    print(model)
+    #print(model)
 
     # define solver and criterion
     base_lr = float(args.lr)
